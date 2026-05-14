@@ -25,7 +25,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- CONFIGURATION DU LIEN GOOGLE SHEET ---
-URL_MUNISH = "https://docs.google.com/spreadsheets/d/1tQ9DbooBOdizjOhke2xJCZFNPcuIE0eWYblD3dpRllM/edit?usp=sharing"
+URL_MUNISH = "https://docs.google.com/spreadsheets/d/1tQ9DbooBOdizjOhke2xJCZFNPcuIE0eWYblD3dpRllM/edit?gid=0#gid=0"
 
 # --- LOGO ET TITRE ---
 col_l, col_t = st.columns([1, 3])
