@@ -132,9 +132,8 @@ with tabs[2]:
             st.error("Dette ajoutée au registre.")
 
     st.write("---")
-    df_det_display = conn.read(worksheet="dettes")
-    st.dataframe(df_det_display)
-
+    url_munish = "https://docs.google.com/spreadsheets/d/1tQ9DbooBOdizjOhke2xJCZFNPcuIE0eWYblD3dpRllM/edit?gid=0#gid=0"
+df_det_display = conn.read(spreadsheet=url_munish, worksheet="dettes")
 # --- ONGLET 4 : BILAN ---
 with tabs[3]:
     st.subheader("Bilan Financier")
