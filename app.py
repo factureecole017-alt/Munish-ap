@@ -24,6 +24,9 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# --- CONFIGURATION DU LIEN GOOGLE SHEET ---
+URL_MUNISH = "https://docs.google.com/spreadsheets/d/1tQ9DbooBOdizjOhke2xJCZFNPcuIE0eWYblD3dpRllM/edit?usp=sharing"
+
 # --- LOGO ET TITRE ---
 col_l, col_t = st.columns([1, 3])
 with col_l:
@@ -36,10 +39,9 @@ with col_t:
     st.markdown("<h1>MUN'ISH STAND</h1>", unsafe_allow_html=True)
 
 # --- CONNEXION GOOGLE SHEETS ---
-# Assure-toi que les "Secrets" sont bien configurés dans Streamlit Cloud
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# --- MENU DU STAND (Selon ta photo) ---
+# --- MENU DU STAND ---
 MENU = {
     "Smoothies (1500f)": {
         "Banane+Raisin": 1500,
@@ -89,22 +91,25 @@ with tabs[0]:
             st.warning(f"Rendu : {rendu} FCFA")
 
     if st.button("Valider la commande"):
-        nouvelle_v = pd.DataFrame([{
-            "Date": datetime.now().strftime("%d/%m/%Y %H:%M"),
-            "Client": nom_c if nom_c else "Anonyme",
-            "Article": art,
-            "Quantité": qte,
-            "Prix_Unitaire": prix_u,
-            "Total": total,
-            "Mode": mode,
-            "Recu": recu,
-            "Rendu": rendu
-        }])
-        df_v = conn.read(worksheet="ventes")
-        df_v = pd.concat([df_v, nouvelle_v], ignore_index=True)
-        conn.update(worksheet="ventes", data=df_v)
-        st.success("Vente enregistrée !")
-        st.balloons()
+        try:
+            nouvelle_v = pd.DataFrame([{
+                "Date": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "Client": nom_c if nom_c else "Anonyme",
+                "Article": art,
+                "Quantité": qte,
+                "Prix_Unitaire": prix_u,
+                "Total": total,
+                "Mode": mode,
+                "Recu": recu,
+                "Rendu": rendu
+            }])
+            df_v = conn.read(spreadsheet=URL_MUNISH, worksheet="ventes")
+            df_v = pd.concat([df_v, nouvelle_v], ignore_index=True)
+            conn.update(spreadsheet=URL_MUNISH, worksheet="ventes", data=df_v)
+            st.success("Vente enregistrée !")
+            st.balloons()
+        except Exception as e:
+            st.error(f"Erreur : Vérifiez que l'onglet 'ventes' existe dans le Sheet. {e}")
 
 # --- ONGLET 2 : DÉPENSES ---
 with tabs[1]:
@@ -113,10 +118,14 @@ with tabs[1]:
         desig = st.text_input("Désignation")
         montant = st.number_input("Montant", min_value=0)
         if st.form_submit_button("Enregistrer l'achat"):
-            df_d = conn.read(worksheet="depenses")
-            df_d = pd.concat([df_d, pd.DataFrame([{"Date": datetime.now().strftime("%d/%m/%Y"), "Désignation": desig, "Montant": montant}])], ignore_index=True)
-            conn.update(worksheet="depenses", data=df_d)
-            st.success("Dépense enregistrée !")
+            try:
+                df_d = conn.read(spreadsheet=URL_MUNISH, worksheet="depenses")
+                nouvelle_d = pd.DataFrame([{"Date": datetime.now().strftime("%d/%m/%Y"), "Désignation": desig, "Montant": montant}])
+                df_d = pd.concat([df_d, nouvelle_d], ignore_index=True)
+                conn.update(spreadsheet=URL_MUNISH, worksheet="depenses", data=df_d)
+                st.success("Dépense enregistrée !")
+            except Exception as e:
+                st.error(f"Erreur : Vérifiez l'onglet 'depenses'. {e}")
 
 # --- ONGLET 3 : DETTES ---
 with tabs[2]:
@@ -126,27 +135,38 @@ with tabs[2]:
         d_art = st.text_input("Article")
         d_somme = st.number_input("Montant dû", min_value=0)
         if st.button("Noter la dette"):
-            df_det = conn.read(worksheet="dettes")
-            df_det = pd.concat([df_det, pd.DataFrame([{"Date": datetime.now().strftime("%d/%m/%Y"), "Client": d_nom, "Article": d_art, "Montant": d_somme, "Statut": "NON PAYÉ"}])], ignore_index=True)
-            conn.update(worksheet="dettes", data=df_det)
-            st.error("Dette ajoutée au registre.")
+            try:
+                df_det = conn.read(spreadsheet=URL_MUNISH, worksheet="dettes")
+                nouvelle_det = pd.DataFrame([{"Date": datetime.now().strftime("%d/%m/%Y"), "Client": d_nom, "Article": d_art, "Montant": d_somme, "Statut": "NON PAYÉ"}])
+                df_det = pd.concat([df_det, nouvelle_det], ignore_index=True)
+                conn.update(spreadsheet=URL_MUNISH, worksheet="dettes", data=df_det)
+                st.error("Dette ajoutée au registre.")
+            except Exception as e:
+                st.error(f"Erreur : Vérifiez l'onglet 'dettes'. {e}")
 
     st.write("---")
-    url_munish = "https://docs.google.com/spreadsheets/d/1tQ9DbooBOdizjOhke2xJCZFNPcuIE0eWYblD3dpRllM/edit?gid=0#gid=0"
-df_det_display = conn.read(spreadsheet=url_munish, worksheet="dettes")
+    try:
+        df_det_display = conn.read(spreadsheet=URL_MUNISH, worksheet="dettes")
+        st.dataframe(df_det_display)
+    except:
+        st.info("Aucune dette à afficher pour le moment.")
+
 # --- ONGLET 4 : BILAN ---
 with tabs[3]:
     st.subheader("Bilan Financier")
-    df_v = conn.read(worksheet="ventes")
-    df_d = conn.read(worksheet="depenses")
-    
-    t_v = df_v["Total"].sum()
-    t_d = df_d["Montant"].sum()
-    
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Entrées", f"{t_v} F")
-    c2.metric("Sorties", f"{t_d} F")
-    c3.metric("Solde", f"{t_v - t_d} F")
-    
-    st.write("**Historique des ventes :**")
-    st.dataframe(df_v.tail(20))
+    try:
+        df_v = conn.read(spreadsheet=URL_MUNISH, worksheet="ventes")
+        df_d = conn.read(spreadsheet=URL_MUNISH, worksheet="depenses")
+        
+        t_v = pd.to_numeric(df_v["Total"]).sum()
+        t_d = pd.to_numeric(df_d["Montant"]).sum()
+        
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Entrées", f"{t_v} F")
+        c2.metric("Sorties", f"{t_d} F")
+        c3.metric("Solde", f"{t_v - t_d} F")
+        
+        st.write("**Historique des ventes :**")
+        st.dataframe(df_v.tail(20))
+    except Exception as e:
+        st.info("Enregistrez une vente et une dépense pour voir le bilan.")
