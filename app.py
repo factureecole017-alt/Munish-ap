@@ -59,7 +59,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 col_l, col_t = st.columns([1, 3])
 with col_l:
     try:
-        st.image(LOGO_PATH, width=100)
+         st.image("logo.png.jpeg", width=100)
     except Exception:
         st.markdown("# 🥤")
 with col_t:
